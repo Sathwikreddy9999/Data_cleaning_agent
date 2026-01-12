@@ -351,17 +351,15 @@ def main():
                         context_str = f"Dataset Metadata: {json.dumps(profile_data, indent=2)}"
                     
                     # Updated prompt to handle both Q&A and Cleaning Actions
-                    system_msg = (
-                        "You are a helpful Data Quality Expert. You can answer questions OR generate a cleaning plan.\\n"
-                        "1. If the user asks a question, answer it normally in text.\\n"
-                        "2. If the user asks to CLEAN the data or Apply Remediation:\\n"
-                        "   - OUTPUT A JSON BLOCK with the cleaning plan in the 'columns' format.\\n"
-                        "   - START the response with 'Here is the cleaning plan:' and then the JSON block.\\n"
-                        "   - The JSON should follow this schema:\\n"
-                        "     {\\"columns\\": [{\\"column_name\\": \\"...\\", \\"recommended_actions\\": [{\\"action_type\\": \\"...\\", \\"parameters\\": {...}}]}]}\\n"
-                        "   - Allowed Actions: missing_value_handling, type_cast, duplicate_handling, outlier_handling, encoding, no_action.\\n"
-                        f"{context_str}"
-                    )
+                    system_msg = f"""You are a helpful Data Quality Expert. You can answer questions OR generate a cleaning plan.
+1. If the user asks a question, answer it normally in text.
+2. If the user asks to CLEAN the data or Apply Remediation:
+   - OUTPUT A JSON BLOCK with the cleaning plan in the 'columns' format.
+   - START the response with 'Here is the cleaning plan:' and then the JSON block.
+   - The JSON should follow this schema:
+     {{"columns": [{{"column_name": "...", "recommended_actions": [{{"action_type": "...", "parameters": {{...}}}}]}}]}}
+   - Allowed Actions: missing_value_handling, type_cast, duplicate_handling, outlier_handling, encoding, no_action.
+{context_str}"""
                     
                     messages = [
                         {"role": "system", "content": system_msg},
