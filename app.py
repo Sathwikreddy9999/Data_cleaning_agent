@@ -350,6 +350,11 @@ def main():
                     if uploaded_file and 'profile_data' in locals():
                         context_str = f"Dataset Metadata: {json.dumps(profile_data, indent=2)}"
                     
+                    # Capture Sidebar Constraints
+                    constraints_str = ""
+                    if cleaning_challenges:
+                        constraints_str = f"\n\nCRITICAL INSTRUCTION: The user has MANUALLY selected the following cleaning challenges in the sidebar: {cleaning_challenges}. You MUST include remedial actions for these specific issues in your cleaning plan, in addition to any requests in the chat."
+
                     # Updated prompt to handle both Q&A and Cleaning Actions
                     system_msg = f"""You are a helpful Data Quality Expert. You can answer questions OR generate a cleaning plan.
 1. If the user asks a question, answer it normally in text.
@@ -359,7 +364,8 @@ def main():
    - The JSON should follow this schema:
      {{"columns": [{{"column_name": "...", "recommended_actions": [{{"action_type": "...", "parameters": {{...}}}}]}}]}}
    - Allowed Actions: missing_value_handling, type_cast, duplicate_handling, outlier_handling, encoding, no_action.
-{context_str}"""
+{context_str}
+{constraints_str}"""
                     
                     messages = [
                         {"role": "system", "content": system_msg},
