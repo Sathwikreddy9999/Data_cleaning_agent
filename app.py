@@ -339,6 +339,16 @@ def main():
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
+                    # 1. Pipeline: Apply Advanced Cleaning first (if selected)
+                    processed_df = df.copy()
+                    applied_constraints = []
+                    if cleaning_challenges:
+                        processed_df, _ = apply_advanced_cleaning(processed_df, cleaning_challenges)
+                        applied_constraints = cleaning_challenges
+                    
+                    # 2. Re-Profile the PROCESSED data so the LLM sees the current state
+                    current_profile = get_column_profile(processed_df)
+
                     chat_llm = ChatOpenAI(
                         model="meta-llama/llama-3.1-70b-instruct", 
                         api_key=api_key,
@@ -346,14 +356,12 @@ def main():
                     )
                     
                     # Context construction
-                    context_str = ""
-                    if uploaded_file and 'profile_data' in locals():
-                        context_str = f"Dataset Metadata: {json.dumps(profile_data, indent=2)}"
+                    context_str = f"Dataset Metadata (After Pre-Cleaning): {json.dumps(current_profile, indent=2)}"
                     
-                    # Capture Sidebar Constraints
+                    # Capture Sidebar Constraints for Context
                     constraints_str = ""
-                    if cleaning_challenges:
-                        constraints_str = f"\n\nCRITICAL INSTRUCTION: The user has MANUALLY selected the following cleaning challenges in the sidebar: {cleaning_challenges}. You MUST include remedial actions for these specific issues in your cleaning plan, in addition to any requests in the chat."
+                    if applied_constraints:
+                        constraints_str = f"\n\nNOTE: The user has already applied the following pre-processing filters via sidebar: {applied_constraints}. The metadata above reflects this clean state. You should focus on ANY ADDITIONAL cleaning requested by the user."
 
                     # Updated prompt to handle both Q&A and Cleaning Actions
                     system_msg = f"""You are a helpful Data Quality Expert. You can answer questions OR generate a cleaning plan.
@@ -400,15 +408,15 @@ def main():
                             st.caption("✅ Agent generated a cleaning plan. applying now...")
                             
                             # Apply Logic
-                            df_cleaned = apply_cleaning_plan(df, plan)
-                            st.dataframe(df_cleaned.head())
+                            final_df = apply_cleaning_plan(processed_df, plan)
+                            st.dataframe(final_df.head())
                             
                             # Download Button IN CHAT
                             import uuid
                             unique_key = str(uuid.uuid4())
                             st.download_button(
                                 "Download Cleaned CSV",
-                                df_cleaned.to_csv(index=False),
+                                final_df.to_csv(index=False),
                                 f"cleaned_data_{unique_key}.csv",
                                 key=unique_key
                             )
